@@ -1,0 +1,13 @@
+version: '3.1'
+services:
+  testdb:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${DB_PASS}
+      PGPASSWORD: ${DB_PASS}
+      PGDATA: /data
+    command: postgres -N 1000 -c fsync=off -c full_page_writes=off
+    ports:
+      - 5432:5432
