@@ -65,7 +65,7 @@ func (ad *ArticleDelivery) create(client event.EventStoreClient) func(http.Respo
 		res, err := client.CreateEvent(context.Background(), eventItem)
 		if err != nil {
 			log.Println(err)
-			util.RespondError(w, http.StatusBadRequest, "invalid-payload")
+			util.RespondError(w, http.StatusInternalServerError, "internal-server-error")
 			return
 		}
 		x, _ = json.Marshal(res)

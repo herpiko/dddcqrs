@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net"
 
@@ -58,8 +59,19 @@ func (s *server) CreateEvent(ctx context.Context, eventData *event.EventParam) (
 	// TODO event store
 	//createEvent := s.ev.CreateEvent(eventData)
 
-	// Publish to nats's jetstream
-	go s.stream.Publish(eventData.Channel, eventData)
+	// Publish to nats
+	// go s.stream.Publish(eventData.channel, eventData)
+
+	// Request to command worker(s)
+	respond, err := s.stream.Request(eventData.Channel, eventData)
+	log.Println(err)
+	log.Println(respond)
+	if respond != "" {
+		// Something is wrong, flag the event as fail
+		log.Println("flag the event as fail")
+		// TODO update eventStore
+		return &event.ResponseParam{}, errors.New(respond)
+	}
 
 	//fmt.Println(createEvent)
 	//if createEvent == nil {

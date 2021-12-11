@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"runtime"
@@ -38,9 +39,9 @@ func main() {
 	if queueGroup == "" {
 		queueGroup = "default-queue-group"
 	}
-	sc.QueueSubscribe(subscribeChannel, os.Getenv("QUEUE_GROUP"), func(m *nats.Msg) {
+	sc.QueueSubscribe(subscribeChannel, os.Getenv("QUEUE_GROUP"), func(msg *nats.Msg) {
 		article := &dddcqrs.Article{}
-		err := json.Unmarshal(m.Data, &article)
+		err := json.Unmarshal(msg.Data, &article)
 		if err != nil {
 			log.Println(err)
 		}
@@ -49,9 +50,12 @@ func main() {
 
 		// TODO create/store to db
 		err = articleRepo.Create(article)
+		err = errors.New("something-is-wrong")
 		if err != nil {
 			log.Println(err)
+			msg.Respond([]byte(err.Error()))
 		}
+		msg.Respond(nil)
 	})
 
 	log.Println("article-command running...")
