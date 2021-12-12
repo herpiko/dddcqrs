@@ -13,11 +13,6 @@ message EventParam {
     string channel = 6; // an optional field
 }
 
-message ResponseParam {
-    bool is_success = 1;
-    string error = 2;
-}
-
 message EventsResponse {
     repeated EventParam events = 1;
 }
@@ -32,7 +27,5 @@ message EventResponse {
 }
 
 service EventStore {
-    rpc GetEvent(EventParam) returns (EventResponse) {}
-    rpc CreateEvent (EventParam) returns (ResponseParam) {}
-    rpc ListEvent(EventParam) returns (EventResponse) {}
+    rpc InvokeEvent(EventParam) returns (EventResponse) {}
 }

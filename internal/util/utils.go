@@ -1,7 +1,9 @@
 package util
 
 import (
+	"crypto/sha1"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -32,8 +34,11 @@ func RespondJson(w http.ResponseWriter, code int, jsonStr string) {
 }
 
 func MigrateInit(db *sql.DB) error {
-	_, b, _, _ := runtime.Caller(0)
-	cwd := filepath.Dir(b)
+	cwd := os.Getenv("MIGRATION_PATH")
+	if cwd == "" {
+		_, b, _, _ := runtime.Caller(0)
+		cwd = filepath.Dir(b)
+	}
 	migrationPath := "file://" + cwd + "/migrations"
 	connectionString :=
 		fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
@@ -139,4 +144,10 @@ func MigrateClean(db *sql.DB) error {
 		return err
 	}
 	return nil
+}
+
+func Sha256sum(in string) string {
+	hasher := sha1.New()
+	hasher.Write([]byte(in))
+	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }

@@ -3,14 +3,12 @@ package article_service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/herpiko/dddcqrs"
-	event "github.com/herpiko/dddcqrs"
-	uuid "github.com/satori/go.uuid"
+	dddcqrs "github.com/herpiko/dddcqrs"
 
 	"github.com/herpiko/dddcqrs/domain/article"
 	util "github.com/herpiko/dddcqrs/internal/util"
@@ -18,15 +16,23 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (ad *ArticleDelivery) HttpGrpcHandler(client event.EventStoreClient, router *mux.Router) {
-	if client == nil {
-		panic(errors.New("invalid-grpc-client"))
-	}
+// HTTP handler that talk to GRPC backend
+
+func (ad *ArticleDelivery) HttpGrpcHandler(client dddcqrs.ArticleServiceClient, router *mux.Router) {
+	/*
+		if client.Event == nil {
+			panic(errors.New("invalid-grpc-client"))
+		}
+		if client == nil {
+			panic(errors.New("invalid-grpc-client"))
+		}
+	*/
 	router.HandleFunc("/api/articles", ad.create(client)).Methods("POST")
 	router.HandleFunc("/api/articles", ad.list(client)).Methods("GET")
+	router.HandleFunc("/api/article/{id}", ad.get(client)).Methods("GET")
 }
 
-func (ad *ArticleDelivery) create(client event.EventStoreClient) func(http.ResponseWriter, *http.Request) {
+func (ad *ArticleDelivery) create(client dddcqrs.ArticleServiceClient) func(http.ResponseWriter, *http.Request) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		var item dddcqrs.Article
 		decoder := json.NewDecoder(r.Body)
@@ -45,40 +51,24 @@ func (ad *ArticleDelivery) create(client event.EventStoreClient) func(http.Respo
 			return
 		}
 
-		jsonBytes, err := json.Marshal(articleItem)
-		if err != nil {
-			log.Println(err)
-			util.RespondError(w, http.StatusBadRequest, "invalid-payload")
-			return
-		}
-
-		evID := uuid.NewV4()
-		agID := uuid.NewV4()
-		eventItem := &event.EventParam{
-			Channel:       "article-created",
-			EventType:     "article-created",
-			AggregateType: "article",
-			EventId:       evID.String(),
-			AggregateId:   agID.String(),
-			EventData:     string(jsonBytes),
-		}
-		x, _ := json.Marshal(eventItem)
-		log.Println(string(x))
-		res, err := client.CreateEvent(context.Background(), eventItem)
+		res, err := client.CreateArticle(context.Background(), articleItem)
 		if err != nil {
 			log.Println(err)
 			util.RespondError(w, http.StatusInternalServerError, "internal-server-error")
 			return
 		}
-		x, _ = json.Marshal(res)
+		log.Println("======================================")
+		log.Println(res)
+		x, _ := json.Marshal(res)
 		log.Println(string(x))
-		util.Respond(w, http.StatusOK, nil)
+		util.Respond(w, http.StatusOK, res)
 		return
+
 	}
 	return handler
 }
 
-func (ad *ArticleDelivery) list(client event.EventStoreClient) func(http.ResponseWriter, *http.Request) {
+func (ad *ArticleDelivery) list(client dddcqrs.ArticleServiceClient) func(http.ResponseWriter, *http.Request) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		page, _ := strconv.Atoi(r.FormValue("page"))
 		if page == 0 {
@@ -88,44 +78,50 @@ func (ad *ArticleDelivery) list(client event.EventStoreClient) func(http.Respons
 		if limit == 0 {
 			limit = 10
 		}
-		search := r.FormValue("search")
+		search := r.FormValue("query") // title and body
 		log.Println(search)
+
+		author := r.FormValue("author") // title and body
+		log.Println(search)
+
 		param := &dddcqrs.Articles{
-			Page:   int32(page),
-			Limit:  int32(limit),
-			Search: search,
+			Page:          int32(page),
+			Limit:         int32(limit),
+			ArticleFilter: search,
+			AuthorFilter:  author,
 		}
 		_ = param
-
-		jsonBytes, err := json.Marshal(param)
-		if err != nil {
-			log.Println(err)
-			util.RespondError(w, http.StatusBadRequest, "invalid-payload")
-			return
-		}
-
-		evID := uuid.NewV4()
-		agID := uuid.NewV4()
-		eventItem := &event.EventParam{
-			Channel:       "article-list",
-			EventType:     "article-list",
-			AggregateType: "article",
-			EventId:       evID.String(),
-			AggregateId:   agID.String(),
-			EventData:     string(jsonBytes),
-		}
-		x, _ := json.Marshal(eventItem)
-		log.Println(string(x))
-		res, err := client.ListEvent(context.Background(), eventItem)
-		log.Println(res)
+		res, err := client.ListArticle(context.Background(), param)
 		if err != nil {
 			log.Println(err)
 			util.RespondError(w, http.StatusInternalServerError, "internal-server-error")
 			return
 		}
-		x, _ = json.Marshal(res)
-		log.Println(string(x))
-		util.RespondJson(w, http.StatusOK, res.EventData)
+		log.Println(res.Data)
+		util.RespondJson(w, http.StatusOK, res.Data)
+		return
+	}
+	return handler
+}
+
+func (ad *ArticleDelivery) get(client dddcqrs.ArticleServiceClient) func(http.ResponseWriter, *http.Request) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		id := mux.Vars(r)["id"]
+
+		res, err := client.GetArticle(context.Background(), &dddcqrs.ArticleId{Id: id})
+		if err != nil {
+			log.Println(err)
+			util.RespondError(w, http.StatusInternalServerError, "internal-server-error")
+			return
+		}
+
+		log.Println(res.Data)
+
+		if strings.Contains(res.Data, "not-found") {
+			util.RespondError(w, http.StatusNotFound, "not-found")
+			return
+		}
+		util.RespondJson(w, http.StatusOK, res.Data)
 		return
 	}
 	return handler

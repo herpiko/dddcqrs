@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// An example of HTTP handler with direct access to repo/db without grpc/mesh
 func (ad *ArticleDelivery) HttpHandler(router *mux.Router) {
 	if ad.Articles == nil {
 		panic(errors.New("uninitialized-repo"))

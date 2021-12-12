@@ -2,6 +2,7 @@ package database
 
 import (
 	"log"
+	"os"
 	"sync"
 
 	"github.com/olivere/elastic"
@@ -23,12 +24,17 @@ func NewElasticConn() *ElasticConn {
 	}
 	elasticConn.init()
 	return elasticConn
-
 }
 
 func (conn *ElasticConn) init() {
+
+	elasticAddr := os.Getenv("ELASTIC_ADDRESS")
+	if elasticAddr == "" {
+		elasticAddr = "localhost:9200"
+	}
+
 	client, err := elastic.NewClient(
-		elastic.SetURL("http://localhost:9200"),
+		elastic.SetURL("http://"+elasticAddr),
 		elastic.SetSniff(false),
 		elastic.SetHealthcheck(false),
 	)

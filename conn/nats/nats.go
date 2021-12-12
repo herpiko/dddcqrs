@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"os"
 	"time"
 
 	event "github.com/herpiko/dddcqrs"
@@ -11,8 +12,24 @@ type Stream struct{}
 
 var sc *nats.Conn
 
+func Init() *nats.Conn { // init helper
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = "nats://127.0.0.1:4222"
+	}
+	conn, err := nats.Connect(natsURL)
+	if err != nil {
+		panic(err)
+	}
+	return conn
+}
+
 func init() {
-	conn, err := nats.Connect(nats.DefaultURL)
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = "nats://127.0.0.1:4222"
+	}
+	conn, err := nats.Connect(natsURL)
 	if err != nil {
 		panic(err)
 	}
@@ -21,26 +38,16 @@ func init() {
 }
 
 func (stream Stream) Publish(types string, event *event.EventParam) error {
-	// Simple Synchronous Publisher
-
-	//publish to service receiver
 	sc.Publish(types, []byte(event.EventData))
-
-	//publish to log
-	sc.Publish("log", []byte(event.EventData))
+	sc.Publish("event-store", []byte(event.EventData))
 	return nil
 }
 
 func (stream Stream) Request(types string, event *event.EventParam) (string, error) {
-	// Simple Synchronous Publisher
-
-	//publish to service receiver
 	resp, err := sc.Request(types, []byte(event.EventData), 10*time.Second)
 	if err != nil {
 		return "", nil
 	}
-
-	//publish to log
-	sc.Publish("log", []byte(event.EventData))
+	sc.Publish("event-store", []byte(event.EventData))
 	return string(resp.Data), nil
 }

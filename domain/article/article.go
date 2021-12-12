@@ -8,7 +8,7 @@ import (
 
 // Article domain is defined in proto/article.proto
 
-var ErrInvalidArticleID = errors.New("invalid-article-id")
+var ErrInvalidArticleId = errors.New("invalid-article-id")
 var ErrInvalidArticleTitle = errors.New("invalid-article-title")
 var ErrInvalidArticleBody = errors.New("invalid-article-body")
 var ErrInvalidArticleAuthor = errors.New("invalid-article-author")

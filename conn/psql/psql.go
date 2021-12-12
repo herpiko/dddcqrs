@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 
@@ -14,7 +16,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Singleton, will be used by command instance
 type PsqlConn struct {
 	DB *sql.DB
 }
@@ -61,7 +62,12 @@ func (psqlConn *PsqlConn) init() {
 }
 
 func (psqlConn *PsqlConn) migrateUp() error {
-	cwd, _ := os.Getwd()
+	log.Println("Migrate up")
+	cwd := os.Getenv("MIGRATION_PATH")
+	if cwd == "" {
+		_, b, _, _ := runtime.Caller(0)
+		cwd = filepath.Dir(b)
+	}
 	migrationPath := "file://" + cwd + "/migrations"
 	connectionString :=
 		fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",

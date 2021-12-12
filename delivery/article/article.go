@@ -26,6 +26,7 @@ func NewArticleDelivery(cfgs ...ArticleConfig) (*ArticleDelivery, error) {
 	return ad, nil
 }
 
+// Hook article delivery with psql and elastic, should be used for command
 func WithPsqlAndElastic(db *sql.DB, el *elastic.Client) ArticleConfig {
 	return func(ad *ArticleDelivery) error {
 		articleRepo, err := storage.New(context.Background(), db, el)
@@ -37,6 +38,7 @@ func WithPsqlAndElastic(db *sql.DB, el *elastic.Client) ArticleConfig {
 	}
 }
 
+// Hook article delivery with elastic only, should be used for query
 func WithElastic(el *elastic.Client) ArticleConfig {
 	return func(ad *ArticleDelivery) error {
 		articleRepo, err := storage.New(context.Background(), nil, el)

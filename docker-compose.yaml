@@ -43,7 +43,7 @@ services:
         soft: -1
         hard: -1
 
-  testkib01:
+  testkib:
     image: docker.elastic.co/kibana/kibana:6.8.20
     ports:
       - 5601:5601

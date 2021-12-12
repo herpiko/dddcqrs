@@ -3,9 +3,10 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
-	event "github.com/herpiko/dddcqrs"
+	dddcqrs "github.com/herpiko/dddcqrs"
 	article "github.com/herpiko/dddcqrs/delivery/article"
 	"google.golang.org/grpc"
 
@@ -18,37 +19,25 @@ func main() {
 
 	router := mux.NewRouter()
 
-	/*
-		 * Article HTTP service
-		 * Instead of initializing an article delivery instance with direct access to db,
-		 * we want to talk to a GRPC service instead
-			app := dddcqrs.NewApp()
-			as, err := article.NewArticleDelivery(
-				article.ArticleConfig(
-					article.ArticleRepoWithPsql(app.DB),
-				),
-			)
-			if err != nil {
-				panic(err)
-			}
-			as.HttpHandler(router)
-	*/
+	grpcAddr := os.Getenv("GRPC_ADDRESS")
+	if grpcAddr == "" {
+		grpcAddr = "localhost:4040"
+	}
 
-	// Article HTTP service with GRPC backend
-	conn, err := grpc.Dial("localhost:4040", grpc.WithInsecure())
+	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}
-	client := event.NewEventStoreClient(conn)
-	//list := event.NewAddServiceClient(conn)
+	client := dddcqrs.NewArticleServiceClient(conn)
+
+	// Init without storage, we only need its HTTP handler
 	as, err := article.NewArticleDelivery()
 	if err != nil {
 		panic(err)
 	}
+
+	// Article HTTP handler with GRPC backend
 	as.HttpGrpcHandler(client, router)
-	if err != nil {
-		panic(err)
-	}
 
 	addr := "0.0.0.0:8000"
 	log.Println("http running at " + addr)
