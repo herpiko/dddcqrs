@@ -3,6 +3,7 @@ package article_service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,14 +20,9 @@ import (
 // HTTP handler that talk to GRPC backend
 
 func (ad *ArticleDelivery) HttpGrpcHandler(client dddcqrs.ArticleServiceClient, router *mux.Router) {
-	/*
-		if client.Event == nil {
-			panic(errors.New("invalid-grpc-client"))
-		}
-		if client == nil {
-			panic(errors.New("invalid-grpc-client"))
-		}
-	*/
+	if client == nil {
+		panic(errors.New("invalid-grpc-client"))
+	}
 	router.HandleFunc("/api/articles", ad.create(client)).Methods("POST")
 	router.HandleFunc("/api/articles", ad.list(client)).Methods("GET")
 	router.HandleFunc("/api/article/{id}", ad.get(client)).Methods("GET")
