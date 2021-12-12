@@ -72,10 +72,13 @@ func main() {
 		cacheId := util.Sha256sum(string(msg.Data))
 		cached, _ := listCache.Get(cacheId)
 		if len(cached) > 0 {
-			log.Println("Use cached version")
+			sc.Publish("test", []byte("use-cached-data"))
+			log.Println("Use cached data")
 			msg.Respond(cached)
 			return
 		}
+		sc.Publish("test", []byte("use-fresh-data"))
+		log.Println("Use fresh data")
 
 		articleList, err := articleDelivery.Articles.List(articleParam)
 		if err != nil {
@@ -97,10 +100,13 @@ func main() {
 		cacheId := "article-get-" + id
 		cached, _ := itemCache.Get(cacheId)
 		if len(cached) > 0 {
-			log.Println("Use cached version")
+			sc.Publish("test", []byte("use-cached-data"))
+			log.Println("Use cached data")
 			msg.Respond(cached)
 			return
 		}
+		sc.Publish("test", []byte("use-fresh-data"))
+		log.Println("Use fresh data")
 
 		articleItem, err := articleDelivery.Articles.Get(id)
 		if err != nil {

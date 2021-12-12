@@ -5,6 +5,50 @@ services:
     entrypoint: /nats-server -js
     ports:
       - 4222:4222
+  testservice:
+    image: dddcqrs/service
+    environment:
+      NATS_URL: 'nats://testnats:4222'
+      ELASTIC_ADDRESS: 'testes01:9200'
+      GRPC_ADDRESS: 'testservice:4040'
+      DB_HOST: 'testpsql'
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+    ports:
+      - 4040:4040
+  testhttp:
+    image: dddcqrs/http
+    environment:
+      NATS_URL: 'nats://testnats:4222'
+      ELASTIC_ADDRESS: 'testes01:9200'
+      GRPC_ADDRESS: 'testservice:4040'
+      DB_HOST: 'testpsql'
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+    ports:
+      - 8000:8000
+  testcommand:
+    image: dddcqrs/command
+    environment:
+      NATS_URL: 'nats://testnats:4222'
+      ELASTIC_ADDRESS: 'testes01:9200'
+      GRPC_ADDRESS: 'testservice:4040'
+      DB_HOST: 'testpsql'
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+  testquery:
+    image: dddcqrs/query
+    environment:
+      NATS_URL: 'nats://testnats:4222'
+      ELASTIC_ADDRESS: 'testes01:9200'
+      GRPC_ADDRESS: 'testservice:4040'
+      DB_HOST: 'testpsql'
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
   testpsql:
     image: postgres:13-alpine
     environment:

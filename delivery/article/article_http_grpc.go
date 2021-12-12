@@ -57,10 +57,6 @@ func (ad *ArticleDelivery) create(client dddcqrs.ArticleServiceClient) func(http
 			util.RespondError(w, http.StatusInternalServerError, "internal-server-error")
 			return
 		}
-		log.Println("======================================")
-		log.Println(res)
-		x, _ := json.Marshal(res)
-		log.Println(string(x))
 		util.Respond(w, http.StatusOK, res)
 		return
 
@@ -78,11 +74,8 @@ func (ad *ArticleDelivery) list(client dddcqrs.ArticleServiceClient) func(http.R
 		if limit == 0 {
 			limit = 10
 		}
-		search := r.FormValue("query") // title and body
-		log.Println(search)
-
+		search := r.FormValue("query")  // title and body
 		author := r.FormValue("author") // title and body
-		log.Println(search)
 
 		param := &dddcqrs.Articles{
 			Page:          int32(page),
@@ -97,7 +90,6 @@ func (ad *ArticleDelivery) list(client dddcqrs.ArticleServiceClient) func(http.R
 			util.RespondError(w, http.StatusInternalServerError, "internal-server-error")
 			return
 		}
-		log.Println(res.Data)
 		util.RespondJson(w, http.StatusOK, res.Data)
 		return
 	}
@@ -114,9 +106,6 @@ func (ad *ArticleDelivery) get(client dddcqrs.ArticleServiceClient) func(http.Re
 			util.RespondError(w, http.StatusInternalServerError, "internal-server-error")
 			return
 		}
-
-		log.Println(res.Data)
-
 		if strings.Contains(res.Data, "not-found") {
 			util.RespondError(w, http.StatusNotFound, "not-found")
 			return

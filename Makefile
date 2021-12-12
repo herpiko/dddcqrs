@@ -1,7 +1,7 @@
 include .env
 export $(shell sed 's/=.*//' .env)
 
-gen-prep:
+prep-linux:
 	curl -L https://github.com/protocolbuffers/protobuf/releases/download/v3.19.1/protoc-3.19.1-linux-x86_64.zip --output /tmp/protoc.zip
 	sudo unzip -o /tmp/protoc.zip -d /usr/local bin/protoc
 	sudo unzip -o /tmp/protoc.zip -d /usr/local bin/protoc
@@ -9,6 +9,7 @@ gen-prep:
 	sudo chmod a+x /usr/local/bin/protoc
 	rm -rf /tmp/protoc.zip
 	go get -u google.golang.org/protobuf/{proto,protoc-gen-go} || true
+	sudo sysctl -w vm.max_map_count=262144
 
 gen:
 	export GOPATH=$$HOME/go
@@ -16,21 +17,18 @@ gen:
 	protoc -I proto/ proto/*.proto --go_out=plugins=grpc:proto
 	mv proto/*.pb.go .
 
-prep:
-	docker kill $$(docker ps -q) || true
-	sudo rm -rf /tmp/data || true
-	docker network rm ${PROJECT_NAME}_default; true
-	sudo sysctl -w vm.max_map_count=262144
-
 dev:
+	docker kill $$(docker ps -q) || true
+	docker network rm ${PROJECT_NAME}_default; true
 	docker network create -d bridge ${PROJECT_NAME}_default ; true
-	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testnats
-	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testpsql
-	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testes01
-	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testes02
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testnats
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testpsql
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testes01
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testes02
 	docker run --network ${PROJECT_NAME}_default willwill/wait-for-it testes01:9200 -- echo "elastic is up"
-	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testkib
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testkib
 	docker run --network ${PROJECT_NAME}_default willwill/wait-for-it testpsql:5432 -- echo "database is up"
+	docker-compose -p ${PROJECT_NAME} run testpsql dropdb -h testpsql -U ${DB_USER} -w ${DB_NAME} || true
 	docker-compose -p ${PROJECT_NAME} run testpsql createdb -h testpsql -U ${DB_USER} -w ${DB_NAME}
 
 es_analyze:
@@ -49,9 +47,17 @@ cov:
 	go tool cover -html=coverage.html
 
 dockerbuild:
-	docker build -t ${PROJECT_NAME}-api .
+	docker build -t dddcqrs/http -f Dockerfile.http .
+	docker build -t dddcqrs/service -f Dockerfile.service .
+	docker build -t dddcqrs/command -f Dockerfile.command .
+	docker build -t dddcqrs/query -f Dockerfile.query .
+	docker build -t dddcqrs/eventstore -f Dockerfile.eventstore .
 
 dockertest:
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testcommand
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testquery
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testservice
+	docker build -t dddcqrs/http -f Dockerfile.http .
 	docker run -ti \
 	--network ${PROJECT_NAME}_default \
 	-e PROJECT_NAME=${PROJECT_NAME} \
@@ -60,7 +66,10 @@ dockertest:
 	-e DB_USER=${DB_USER} \
 	-e DB_PASS=${DB_PASS} \
 	-e DB_NAME=${DB_NAME} \
-	${PROJECT_NAME}-api /app/scripts/test.sh
+	-e NATS_URL='nats://testnats:4222' \
+	-e GRPC_ADDRESS='testservice:4040' \
+	-e ELASTIC_ADDRESS='testes01:9200' \
+	${PROJECT_NAME}/http /svc/scripts/test.sh
 
 post:
 	curl -X DELETE 'http://localhost:9200/article'
@@ -97,6 +106,7 @@ get-page:
 
 get-query:
 	curl -X GET 'http://localhost:8000/api/articles?page=1&limit=5&query=surau'
+
 get-author:
 	curl -X GET 'http://localhost:8000/api/articles?page=1&limit=5&author=anton'
 
