@@ -10,7 +10,7 @@ import (
 )
 
 func (ad *ArticleDelivery) HttpHandler(router *mux.Router) {
-	if ad.articles == nil {
+	if ad.Articles == nil {
 		panic(errors.New("uninitialized-repo"))
 	}
 	router.HandleFunc("/api/articles", ad.getAll).Methods("GET")

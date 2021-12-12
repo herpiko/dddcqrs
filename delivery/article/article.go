@@ -5,11 +5,12 @@ import (
 	"database/sql"
 
 	"github.com/herpiko/dddcqrs/domain/article"
-	"github.com/herpiko/dddcqrs/domain/article/psql"
+	storage "github.com/herpiko/dddcqrs/domain/article/storage"
+	"github.com/olivere/elastic"
 )
 
 type ArticleDelivery struct {
-	articles article.ArticleRepository
+	Articles article.ArticleRepository
 }
 
 type ArticleConfig func(ad *ArticleDelivery) error
@@ -25,13 +26,24 @@ func NewArticleDelivery(cfgs ...ArticleConfig) (*ArticleDelivery, error) {
 	return ad, nil
 }
 
-func ArticleRepoWithPsql(db *sql.DB) ArticleConfig {
+func WithPsqlAndElastic(db *sql.DB, el *elastic.Client) ArticleConfig {
 	return func(ad *ArticleDelivery) error {
-		articleRepo, err := psql.New(context.Background(), db)
+		articleRepo, err := storage.New(context.Background(), db, el)
 		if err != nil {
 			return err
 		}
-		ad.articles = articleRepo
+		ad.Articles = articleRepo
+		return nil
+	}
+}
+
+func WithElastic(el *elastic.Client) ArticleConfig {
+	return func(ad *ArticleDelivery) error {
+		articleRepo, err := storage.New(context.Background(), nil, el)
+		if err != nil {
+			return err
+		}
+		ad.Articles = articleRepo
 		return nil
 	}
 }

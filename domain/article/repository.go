@@ -11,8 +11,13 @@ var (
 	ErrFailedToAddArticle = errors.New("failed to add the article to the repository")
 )
 
-// Pluggable against any db/storage system
-// See psql/psql.go as implementation example
+// Combine to commnad/query funcs and different databases in one repo
+// for easier maintenance
 type ArticleRepository interface {
+	// Commands
 	Create(*dddcqrs.Article) error
+	CreateAggregate(*dddcqrs.ArticleAggregateRoot) error
+
+	// Query
+	List(*dddcqrs.Articles) (*dddcqrs.Articles, error)
 }

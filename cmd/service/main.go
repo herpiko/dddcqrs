@@ -11,7 +11,7 @@ import (
 
 	dddcqrs "github.com/herpiko/dddcqrs"
 	event "github.com/herpiko/dddcqrs"
-	"github.com/herpiko/dddcqrs/nats"
+	"github.com/herpiko/dddcqrs/conn/nats"
 )
 
 type server struct {
@@ -49,33 +49,42 @@ func (s *server) ListArticle(ctx context.Context, request *event.ListArticlePara
 	return &listArticle, nil
 }
 
-func (s *server) GetEvents(ctx context.Context, eventData *event.EventFilter) (*event.EventResponse, error) {
-	log.Println("service GetEvents")
+func (s *server) GetEvent(ctx context.Context, eventData *event.EventParam) (*event.EventResponse, error) {
+	log.Println("service GetEvent")
 	return &event.EventResponse{}, nil
 }
 
 func (s *server) CreateEvent(ctx context.Context, eventData *event.EventParam) (*event.ResponseParam, error) {
-	log.Println("service CreateEvents")
-	// TODO event store
-	//createEvent := s.ev.CreateEvent(eventData)
-
-	// Publish to nats
-	// go s.stream.Publish(eventData.channel, eventData)
-
-	// Request to command worker(s)
+	log.Println("service CreateEvent")
 	respond, err := s.stream.Request(eventData.Channel, eventData)
-	log.Println(err)
-	log.Println(respond)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
 	if respond != "" {
 		// Something is wrong, flag the event as fail
 		log.Println("flag the event as fail")
 		// TODO update eventStore
 		return &event.ResponseParam{}, errors.New(respond)
 	}
-
-	//fmt.Println(createEvent)
-	//if createEvent == nil {
-	//		return &event.ResponseParam{}, errors.Wrap(createEvent, "error from RPC server")
-	//}
 	return &event.ResponseParam{}, nil
+}
+
+func (s *server) ListEvent(ctx context.Context, eventData *event.EventParam) (*event.EventResponse, error) {
+	log.Println("service ListEvents")
+	respond, err := s.stream.Request(eventData.Channel, eventData)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	result := &event.EventResponse{
+		EventId:       eventData.EventId,
+		EventType:     eventData.EventType,
+		AggregateId:   eventData.AggregateId,
+		AggregateType: eventData.AggregateType,
+		Channel:       eventData.Channel,
+		EventData:     respond,
+	}
+	return result, err
 }

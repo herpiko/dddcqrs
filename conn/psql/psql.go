@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"sync"
 
@@ -17,31 +15,31 @@ import (
 )
 
 // Singleton, will be used by command instance
-type App struct {
+type PsqlConn struct {
 	DB *sql.DB
 }
 
 var (
-	app *App
+	psqlConn *PsqlConn
 )
 var lock = &sync.Mutex{}
 
-func NewApp() *App {
+func NewPsqlConn() *PsqlConn {
 	lock.Lock()
 	defer lock.Unlock()
-	if app == nil {
-		app = &App{}
+	if psqlConn == nil {
+		psqlConn = &PsqlConn{}
 	}
 	// Make sure our DB has the latest migrations
-	app.init()
-	return app
+	psqlConn.init()
+	return psqlConn
 }
 
-func (app *App) init() {
+func (psqlConn *PsqlConn) init() {
 	var err error
 
 	// Regular migration
-	err = app.migrateUp()
+	err = psqlConn.migrateUp()
 	if err != nil {
 		log.Println(err)
 		log.Fatal(err)
@@ -55,18 +53,16 @@ func (app *App) init() {
 			os.Getenv("DB_PASS"),
 			os.Getenv("DB_NAME"),
 		)
-	app.DB, err = sql.Open("postgres", connectionString)
+	psqlConn.DB, err = sql.Open("postgres", connectionString)
 	if err != nil {
 		log.Println(err)
 		log.Fatal(err)
 	}
 }
 
-func (app *App) migrateUp() error {
-	_, b, _, _ := runtime.Caller(0)
-	cwd := filepath.Dir(b)
+func (psqlConn *PsqlConn) migrateUp() error {
+	cwd, _ := os.Getwd()
 	migrationPath := "file://" + cwd + "/migrations"
-	log.Println(migrationPath)
 	connectionString :=
 		fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 			os.Getenv("DB_USER"),

@@ -24,8 +24,11 @@ dev:
 	docker network create -d bridge ${PROJECT_NAME}_default ; true
 	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testnats
 	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testpsql
-	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testelastic1
-	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testelastic2
+	sudo sysctl -w vm.max_map_count=262144
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testes01
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testes02
+	#docker-compose -p ${PROJECT_NAME} up -d --force-recreate testes03
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate testkib01
 	docker run --network ${PROJECT_NAME}_default willwill/wait-for-it testpsql:5432 -- echo "database is up"
 	docker-compose -p ${PROJECT_NAME} run testpsql createdb -h testpsql -U ${DB_USER} -w ${DB_NAME}
 
@@ -57,3 +60,16 @@ dockertest:
 	-e DB_PASS=${DB_PASS} \
 	-e DB_NAME=${DB_NAME} \
 	${PROJECT_NAME}-api /app/scripts/test.sh
+
+post:
+	curl -X POST http://localhost:8000/api/articles -H 'Content-Type: application/json' -d '{"title":"title1","body":"body1","author":"author1"}'
+	curl -X POST http://localhost:8000/api/articles -H 'Content-Type: application/json' -d '{"title":"robohnya surau kami","body":"loremipsum1","author":"aa navis"}'
+	curl -X POST http://localhost:8000/api/articles -H 'Content-Type: application/json' -d '{"title":"radical candor","body":"loremipsum2","author":"kim scott"}'
+get:
+	curl -X GET http://localhost:8000/api/articles
+
+get-page:
+	curl -X GET 'http://localhost:8000/api/articles?page=1&limit=5'
+
+get-search:
+	curl -X GET 'http://localhost:8000/api/articles?page=1&limit=5&search=roboh'

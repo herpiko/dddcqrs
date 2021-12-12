@@ -1,15 +1,15 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"log"
 	"os"
 	"runtime"
 
 	dddcqrs "github.com/herpiko/dddcqrs"
-	"github.com/herpiko/dddcqrs/domain/article/psql"
+	el "github.com/herpiko/dddcqrs/conn/elastic"
+	psql "github.com/herpiko/dddcqrs/conn/psql"
+	delivery "github.com/herpiko/dddcqrs/delivery/article"
 	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
 )
@@ -22,8 +22,16 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	_ = godotenv.Load()
 
-	app := dddcqrs.NewApp()
-	articleRepo, err := psql.New(context.Background(), app.DB)
+	elasticConn := el.NewElasticConn()
+	psqlConn := psql.NewPsqlConn()
+	articleDelivery, err := delivery.NewArticleDelivery(
+		delivery.ArticleConfig(
+			delivery.WithPsqlAndElastic(
+				psqlConn.DB,
+				elasticConn.Conn,
+			),
+		),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -40,20 +48,32 @@ func main() {
 		queueGroup = "default-queue-group"
 	}
 	sc.QueueSubscribe(subscribeChannel, os.Getenv("QUEUE_GROUP"), func(msg *nats.Msg) {
-		article := &dddcqrs.Article{}
-		err := json.Unmarshal(msg.Data, &article)
+		articleItem := &dddcqrs.Article{}
+		err := json.Unmarshal(msg.Data, &articleItem)
 		if err != nil {
 			log.Println(err)
 		}
-		x, _ := json.Marshal(article)
+		x, _ := json.Marshal(articleItem)
 		log.Println(string(x))
 
-		// TODO create/store to db
-		err = articleRepo.Create(article)
-		err = errors.New("something-is-wrong")
+		// Write database
+		err = articleDelivery.Articles.Create(articleItem)
 		if err != nil {
 			log.Println(err)
 			msg.Respond([]byte(err.Error()))
+			return
+		}
+
+		// Read database
+		err = articleDelivery.Articles.CreateAggregate(&dddcqrs.ArticleAggregateRoot{
+			Title:      articleItem.Title,
+			Body:       articleItem.Body,
+			AuthorName: articleItem.Author,
+		})
+		if err != nil {
+			log.Println(err)
+			msg.Respond([]byte(err.Error()))
+			return
 		}
 		msg.Respond(nil)
 	})

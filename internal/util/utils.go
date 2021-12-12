@@ -25,6 +25,12 @@ func Respond(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(response)
 }
 
+func RespondJson(w http.ResponseWriter, code int, jsonStr string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write([]byte(jsonStr))
+}
+
 func MigrateInit(db *sql.DB) error {
 	_, b, _, _ := runtime.Caller(0)
 	cwd := filepath.Dir(b)

@@ -17,8 +17,18 @@ message Article {
 message Articles {
   int32 page = 1;
   int32 limit = 2;
-  int32 total = 3;
-  repeated Article data = 4;
+  string search = 3;
+  int32 total = 4;
+  repeated ArticleAggregateRoot data = 5;
+}
+
+message ArticleAggregateRoot {
+  int32  id = 1;
+  string title = 2;
+  string body = 3;
+  string author_id = 4;
+  string author_name = 5;
+  string aggregate_id = 6;
 }
 
 service AddService {
