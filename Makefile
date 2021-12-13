@@ -47,16 +47,43 @@ cov:
 	go tool cover -html=coverage.html
 
 dockerbuild:
-	docker build -t dddcqrs/http -f Dockerfile.http .
-	docker build -t dddcqrs/service -f Dockerfile.service .
-	docker build -t dddcqrs/command -f Dockerfile.command .
-	docker build -t dddcqrs/query -f Dockerfile.query .
-	docker build -t dddcqrs/eventstore -f Dockerfile.eventstore .
+	docker build -t herpiko/dddcqrs-http -f Dockerfile.http .
+	docker build -t herpiko/dddcqrs-service -f Dockerfile.service .
+	docker build -t herpiko/dddcqrs-command -f Dockerfile.command .
+	docker build -t herpiko/dddcqrs-query -f Dockerfile.query .
+	docker build -t herpiko/dddcqrs-eventstore -f Dockerfile.eventstore .
+
+dockerpush:
+	docker push herpiko/dddcqrs-http
+	docker push herpiko/dddcqrs-service
+	docker push herpiko/dddcqrs-command
+	docker push herpiko/dddcqrs-query
+	docker push herpiko/dddcqrs-eventstore
 
 dockertest:
 	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testcommand
 	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testquery
 	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testservice
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testeventstore
+	docker build -t dddcqrs/http -f Dockerfile.http .
+	docker run -ti \
+	--network ${PROJECT_NAME}_default \
+	-e PROJECT_NAME=${PROJECT_NAME} \
+	-e APP_NAME=${APP_NAME} \
+	-e DB_HOST='testpsql' \
+	-e DB_USER=${DB_USER} \
+	-e DB_PASS=${DB_PASS} \
+	-e DB_NAME=${DB_NAME} \
+	-e NATS_URL='nats://testnats:4222' \
+	-e GRPC_ADDRESS='testservice:4040' \
+	-e ELASTIC_ADDRESS='testes01:9200' \
+	${PROJECT_NAME}/http /svc/scripts/test.sh
+
+dockerrun:
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testservice
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testcommand
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testquery
+	docker-compose -p ${PROJECT_NAME} up -d --force-recreate --remove-orphans testeventstore
 	docker build -t dddcqrs/http -f Dockerfile.http .
 	docker run -ti \
 	--network ${PROJECT_NAME}_default \

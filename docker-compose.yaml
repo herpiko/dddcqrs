@@ -6,7 +6,7 @@ services:
     ports:
       - 4222:4222
   testservice:
-    image: dddcqrs/service
+    image: herpiko/dddcqrs-service
     environment:
       NATS_URL: 'nats://testnats:4222'
       ELASTIC_ADDRESS: 'testes01:9200'
@@ -18,7 +18,7 @@ services:
     ports:
       - 4040:4040
   testhttp:
-    image: dddcqrs/http
+    image: herpiko/dddcqrs-http
     environment:
       NATS_URL: 'nats://testnats:4222'
       ELASTIC_ADDRESS: 'testes01:9200'
@@ -30,7 +30,7 @@ services:
     ports:
       - 8000:8000
   testcommand:
-    image: dddcqrs/command
+    image: herpiko/dddcqrs-command
     environment:
       NATS_URL: 'nats://testnats:4222'
       ELASTIC_ADDRESS: 'testes01:9200'
@@ -40,7 +40,17 @@ services:
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME}
   testquery:
-    image: dddcqrs/query
+    image: herpiko/dddcqrs-query
+    environment:
+      NATS_URL: 'nats://testnats:4222'
+      ELASTIC_ADDRESS: 'testes01:9200'
+      GRPC_ADDRESS: 'testservice:4040'
+      DB_HOST: 'testpsql'
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+  testeventstore:
+    image: herpiko/dddcqrs-eventstore
     environment:
       NATS_URL: 'nats://testnats:4222'
       ELASTIC_ADDRESS: 'testes01:9200'
