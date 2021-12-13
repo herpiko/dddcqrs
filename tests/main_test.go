@@ -45,6 +45,8 @@ func TestMain(m *testing.M) {
 		}
 	})
 
+	defer sc.Close()
+
 	code := m.Run()
 	os.Exit(code)
 }
