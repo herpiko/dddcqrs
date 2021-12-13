@@ -87,6 +87,8 @@ Then,
 make test
 ```
 
+Elasticsearch takes a bit time to get the data to be indexed and ready. If your computer is too slow, the test may fail and you may need to increase the time.Sleep()'s parameter in unit test files.
+
 ### Images
 
 Using `herpiko/dddcqrs` namespace,
