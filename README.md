@@ -18,20 +18,28 @@ All configuration are done by environment variables. See `.env`
 
 The grey blocks bellow are not implemented yet.
 
-![cqrs drawio](https://user-images.githubusercontent.com/2534060/145728669-fcee1134-cb14-4abd-a807-9f9c5e2fd82b.png)
-
+![cqrs drawio](https://user-images.githubusercontent.com/2534060/145761150-a34d6617-8ad1-4f1d-8e3d-87f62dcbab1a.png)
 
 ## Development
 
 You need `make`. Install `build-essential` if you are on Ubuntu or Command Line Tools through XCode if you are on macOS.
 
-### Preparation (Linux)
+### Preparation
 
-`protoc`, `max_map_count`, etc. Requires `sudo`,
+
+#### Linux
+
+`protoc` and `max_map_count`. Requires `sudo`.
 ```
 make prep-linux
 ```
 
+#### macOS (x86_64)
+
+`protoc`. Requires `sudo`.
+```
+make prep-macos
+```
 
 ### Infrastructure
 ```
@@ -45,6 +53,7 @@ make gen
 
 ### Run locally
 
+In Docker,
 ```
 make dockerbuild
 make dockerrun

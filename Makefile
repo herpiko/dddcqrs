@@ -1,5 +1,8 @@
 include .env
 export $(shell sed 's/=.*//' .env)
+GOBIN  := $(shell go env | grep GOPATH | tr -d '"' | cut -d '=' -f 2)/bin
+GOPATH  := $(shell go env | grep GOPATH | tr -d '"' | cut -d '=' -f 2)
+PATH  := $(PATH):$(GOBINthub.com/golang/protobuf/{proto,protoc-gen-go}):$(GOBIN)
 
 prep-linux:
 	curl -L https://github.com/protocolbuffers/protobuf/releases/download/v3.19.1/protoc-3.19.1-linux-x86_64.zip --output /tmp/protoc.zip
@@ -8,12 +11,19 @@ prep-linux:
 	sudo unzip -o /tmp/protoc.zip -d /usr/local 'include/*'
 	sudo chmod a+x /usr/local/bin/protoc
 	rm -rf /tmp/protoc.zip
-	go get -u google.golang.org/protobuf/{proto,protoc-gen-go} || true
+	go get -u github.com/golang/protobuf/{proto,protoc-gen-go} || true
 	sudo sysctl -w vm.max_map_count=262144
 
+prep-macos:
+	curl -L https://github.com/protocolbuffers/protobuf/releases/download/v3.19.1/protoc-3.19.1-osx-x86_64.zip --output /tmp/protoc.zip
+	sudo unzip -o /tmp/protoc.zip -d /usr/local bin/protoc
+	sudo unzip -o /tmp/protoc.zip -d /usr/local bin/protoc
+	sudo unzip -o /tmp/protoc.zip -d /usr/local 'include/*'
+	sudo chmod a+x /usr/local/bin/protoc
+	rm -rf /tmp/protoc.zip
+	go get -u github.com/golang/protobuf/{proto,protoc-gen-go} || true
+
 gen:
-	export GOPATH=$$HOME/go
-	export PATH=$$PATH:/$$GOPATH/bin
 	protoc -I proto/ proto/*.proto --go_out=plugins=grpc:proto
 	mv proto/*.pb.go .
 
